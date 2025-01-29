@@ -9,6 +9,8 @@ start_router = Router()
 
 data = []
 books = []
+weeks = iter(['1 неделя', '2 недели', '3 недели', '4 недели', 'Ещё чуть-чуть'])
+
 
 @start_router.message(CommandStart())
 async def start(message: Message, command: CommandObject):
@@ -18,7 +20,13 @@ async def start(message: Message, command: CommandObject):
 
 @start_router.message(F.text == '❓ Помощь')
 async def help(message: Message):
-    await message.answer('Здесь будет инструкция:')
+    text = ('<b>❓ Помощь</b> - эта справка.\n'
+            '<b>📚 Книги!</b> - список книг.\n'
+            '📗 - книга доступна.\n'
+            '📕 - книга занята.\n'
+            '📘 - книга взята.'
+    )
+    await message.answer(text, reply_markup=main_kb(message.from_user.id))
 
 @start_router.message(F.text == '📚 Книги!')
 async def get_books(message: Message):
@@ -46,15 +54,18 @@ async def read_message(message: Message):
     text=f'Ничего'
     if book != None:
         if book['Читатель'].strip() == '':
-            text=f'Вы выбрали: <b>{message.text}</b>'
+            text=f'Книга взята: <b>{message.text}</b>'
             google_table.update_cell_from_sheet(sheet_title, row=row+8, col=5, value=user)
+            google_table.update_cell_from_sheet(sheet_title, row=row+8, col=6, value=datetime.now().strftime('%d/%m/%Y'))
+            google_table.update_cell_from_sheet(sheet_title, row=row+8, col=7, value='2 недели')
         elif book['Читатель'] == user:
-            text=f'Книга: <b>{message.text}</b> возвращена!'
+            text=f'Книга возвращена: <b>{message.text}</b>'
             google_table.update_cell_from_sheet(sheet_title, row=row+8, col=5, value='')
         else:
-            text=f'Книга занята. \n \
-                   Читатель: {book['Читатель']}\n \
-                   Когда взял: {book['Когда взял']}\n \
-                   Срок: {book['Срок']}'
-    await message.reply(text=text, reply_markup=main_kb(message.from_user.id))
+            text=f'<b>Книга занята.</b>\n' + \
+                 f'Читатель: {book['Читатель']}\n' + \
+                 f'Когда взял: {book['Когда взял']}\n' + \
+                 f'Срок: {book['Срок']}'
+    data = google_table.get_data_from_sheet(sheet_title, 7)
+    await message.reply(text=text, reply_markup=create_list_books(data, user))
     
