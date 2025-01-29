@@ -15,7 +15,7 @@ weeks = iter(['1 неделя', '2 недели', '3 недели', '4 неде�
 @start_router.message(CommandStart())
 async def start(message: Message, command: CommandObject):
     command_args: str = command.args if command is not None else None
-    hello_text = 'Привет!'
+    hello_text = 'Привет! Выбери действие.'
     await message.answer(text=hello_text, reply_markup=main_kb(message.from_user.id))
 
 @start_router.message(F.text == '❓ Помощь')
@@ -34,7 +34,7 @@ async def get_books(message: Message):
     data = google_table.get_data_from_sheet(sheet_title, 7)
     books.clear()
     for item in data:
-        books.append(item['Название книги'])
+        books.append(item['Название книги'].strip())
     
     await message.answer(text='Выберите книгу!', reply_markup=create_list_books(data, user))
 
@@ -49,18 +49,27 @@ async def read_message(message: Message):
     row = books.index(message.text[1:])
     book = None
     for item in data: 
-        if item['Название книги'] == message.text[1:]:
+        if item['Название книги'].strip() == message.text[1:]:
             book = item
     text=f'Ничего'
     if book != None:
         if book['Читатель'].strip() == '':
-            text=f'Книга взята: <b>{message.text}</b>'
-            google_table.update_cell_from_sheet(sheet_title, row=row+8, col=5, value=user)
-            google_table.update_cell_from_sheet(sheet_title, row=row+8, col=6, value=datetime.now().strftime('%d/%m/%Y'))
-            google_table.update_cell_from_sheet(sheet_title, row=row+8, col=7, value='2 недели')
+            i=0
+            for item in data:
+                if item['Читатель'] == user:
+                    i+=1
+            if i>1:
+                text=f'Достигнут лимит книг. Верните книгу прежде чем взять новую.'
+            else:
+                text=f'Книга взята: <b>{message.text}</b>'
+                google_table.update_cell_from_sheet(sheet_title, row=row+8, col=5, value=user)
+                google_table.update_cell_from_sheet(sheet_title, row=row+8, col=6, value=datetime.now().strftime('%d.%m.%Y'))
+                google_table.update_cell_from_sheet(sheet_title, row=row+8, col=7, value='2 недели')
         elif book['Читатель'] == user:
             text=f'Книга возвращена: <b>{message.text}</b>'
             google_table.update_cell_from_sheet(sheet_title, row=row+8, col=5, value='')
+            google_table.update_cell_from_sheet(sheet_title, row=row+8, col=6, value='')
+            google_table.update_cell_from_sheet(sheet_title, row=row+8, col=7, value='')
         else:
             text=f'<b>Книга занята.</b>\n' + \
                  f'Читатель: {book['Читатель']}\n' + \
