@@ -1,5 +1,5 @@
 from aiogram.types import KeyboardButton, ReplyKeyboardMarkup, Message
-from create_bot import admins
+from create_bot import admins, google_table
 from aiogram.utils.keyboard import ReplyKeyboardBuilder
 
 def main_kb(user_telegram_id: int):
@@ -17,16 +17,16 @@ def main_kb(user_telegram_id: int):
         )
     return keyboard
 
-def create_list_books(data: list, message: Message):
-    user = f'{message.from_user.first_name}, @{message.from_user.username}'
+def create_list_books(data: list, user: str):
     books = []
     for item in data:
         book = item['Название книги'].strip()
-        if item['Читатель'] != '':
-            if item['Читатель'] == user:
-                book = '📖' + book
-            else:
-                book = '📍' + book
+        if item['Читатель'].strip() == '':
+            book = '📗' + book
+        elif item['Читатель'] == user:
+            book = '📘' + book
+        else:
+            book = '📕' + book
         books.append(book)
 
     builder = ReplyKeyboardBuilder()
