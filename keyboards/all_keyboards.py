@@ -34,4 +34,4 @@ def create_list_books(data: list, user: str):
         builder.button(text=book)
     builder.button(text='Назад')
     builder.adjust(1)
-    return builder.as_markup(resize_keyboard=True)
+    return builder.as_markup(resize_keyboard=True, one_time_keyboard=True)

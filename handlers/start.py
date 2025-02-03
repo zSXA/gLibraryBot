@@ -44,6 +44,7 @@ async def go_back_home(message: Message):
 
 @start_router.message(F.text[1:].in_(books))
 async def read_message(message: Message):
+    await message.reply(text='Обрабатываю ...')
     user = f'{message.from_user.first_name}, @{message.from_user.username}'
     data = google_table.get_data_from_sheet(sheet_title, 7)
     row = books.index(message.text[1:])
