@@ -4,3 +4,4 @@ APScheduler
 python-decouple
 faker
 gspread
+qrcode[pil]

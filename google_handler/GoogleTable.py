@@ -1,11 +1,13 @@
 from gspread import Spreadsheet, service_account
-from typing import List, Dict
+from typing import List, Set, Dict
 
 class GoogleTable:
 
     def __init__(self, config_auth: str, table_key: str):
-        self.client=service_account(filename=config_auth)
-        self.table=self.client.open_by_key(table_key)
+        self.config_auth = config_auth
+        self.table_key = table_key
+        self.client=service_account(filename=self.config_auth)
+        self.table=self.client.open_by_key(self.table_key)
         self.data = []
     
     def __repr__(self) -> List[Dict]:
@@ -34,3 +36,21 @@ class GoogleTable:
         worksheet = self.table.worksheet(title)
         worksheet.update_cell(row, col, value)
         return 'Success'
+    
+    def update_range_from_sheet(self, title: str, data: Dict) -> None:
+        """
+        Добавляет и обновляет данные на рабочем листе в Google Sheets.
+
+        :param title: Название рабочего листа.
+        :param data: Множество словарей с данными.
+        """
+        worksheet = self.table.worksheet(title)
+        
+        batch_data: List[Dict] = []
+
+        for key, value in data.items():
+            batch_data.append({'range': key, 'values': [value]})
+        
+        worksheet.batch_update(batch_data)
+
+        return batch_data

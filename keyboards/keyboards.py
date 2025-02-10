@@ -17,21 +17,30 @@ def main_kb(user_telegram_id: int):
         )
     return keyboard
 
-def create_list_books(data: list, user: str):
+def create_list_books(data: list, user: str = None):
     books = []
     for item in data:
         book = item['Название книги'].strip()
-        if item['Читатель'].strip() == '':
-            book = '📗' + book
-        elif item['Читатель'] == user:
-            book = '📘' + book
-        else:
-            book = '📕' + book
+        if user:
+            if item['Читатель'].strip() == '':
+                book = '📗' + book
+            elif item['Читатель'] == user:
+                book = '📘' + book
+            else:
+                book = '📕' + book
         books.append(book)
-
     builder = ReplyKeyboardBuilder()
     for book in books:
         builder.button(text=book)
     builder.button(text='Назад')
     builder.adjust(1)
     return builder.as_markup(resize_keyboard=True, one_time_keyboard=True)
+
+def admin_kb():
+    kb_list = [KeyboardButton(text="Сгенерировать qr-code")]
+    keyboard = ReplyKeyboardMarkup(
+        keyboard=kb_list,
+        resize_keyboard=True,
+        one_time_keyboard=True,
+        input_field_placeholder="Воспользуйтесь меню:"
+    )
