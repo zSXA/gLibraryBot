@@ -37,10 +37,8 @@ def create_list_books(data: list, user: str = None):
     return builder.as_markup(resize_keyboard=True, one_time_keyboard=True)
 
 def admin_kb():
-    kb_list = [KeyboardButton(text="Сгенерировать qr-code")]
-    keyboard = ReplyKeyboardMarkup(
-        keyboard=kb_list,
-        resize_keyboard=True,
-        one_time_keyboard=True,
-        input_field_placeholder="Воспользуйтесь меню:"
-    )
+    builder = ReplyKeyboardBuilder()
+    builder.button(text='Сгенерировать qr-code')
+    builder.button(text='Назад')
+    builder.adjust(1)
+    return builder.as_markup(resize_keyboard=True, one_time_keyboard=True)

@@ -1,5 +1,7 @@
 from faker import Faker
 from qrcode import QRCode, constants
+import os
+from create_bot import all_media_dir
 
 def get_random_person():
     # Создаём объект Faker с русской локализацией
@@ -17,16 +19,20 @@ def get_random_person():
     }
     return user
 
-def gen_qrcode(value: str):
+def gen_qrcode(name: str, value: str):
+
     qr = QRCode(
         version=1,
         error_correction=constants.ERROR_CORRECT_L,
         box_size=10,
         border=4,
     )
+    
     qr.add_data(value)
     qr.make(fit=True)
     img=qr.make_image(fill_color="black", back_color="white")
-    # img.save(f'utils/f{value}.jpeg')
-    return img
+    file_path = os.path.join(all_media_dir, f'qrcodes/{name}.jpeg')
+    img.save(file_path)
+
+    return file_path
 

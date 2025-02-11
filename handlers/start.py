@@ -1,22 +1,45 @@
 from aiogram import Router, F
 from aiogram.filters import CommandStart, CommandObject
-from aiogram.types import Message
-from keyboards.keyboards import main_kb, create_list_books
-from create_bot import google_table, sheet_title, admins
+from aiogram.types import Message, FSInputFile
+from keyboards.keyboards import main_kb, create_list_books, admin_kb
+from create_bot import google_table, books, admins, batch_data, scheduler, sheet_title
 from datetime import datetime
 from filters.IsAdmin import IsAdmin
-
+from typing import List
+from utils.utils import gen_qrcode
+from datetime import datetime, timedelta
 start_router = Router()
 
-books = []
-weeks = iter(['1 неделя', '2 недели', '3 недели', '4 недели', 'Ещё чуть-чуть'])
+data = google_table.data
+weeks = iter(['2 недели', '3 недели', '4 недели', 'Ещё чуть-чуть'])
 
+
+def rent(row: int, value: List):
+    
+    batch_data[f'E{row+8}:G{row+8}'] = value
+
+    data[row]['Читатель'] = value[0]
+    data[row]['Когда взял'] = value[1]
+    data[row]['Срок'] = value[2]
+
+def refresh():
+    if not scheduler.get_jobs():
+        run_date = datetime.now() + timedelta(seconds=10.0)
+        scheduler.add_job(func=google_table.update_range_from_sheet,trigger='date', run_date=run_date,
+                          id=f'refresh_{run_date}', args=[sheet_title, batch_data])
+    for job in scheduler.get_jobs():
+        print(f'ID job: {job.id}')
+        print(f'Next run: {job.next_run_time}')
+        print(f'State: {job._jobstore_alias}')
 
 @start_router.message(CommandStart())
 async def start(message: Message, command: CommandObject):
+
     if command.args:
         await read_message(message=message, command=command)
+
     hello_text = 'Привет! Выбери действие.'
+
     await message.answer(text=hello_text, reply_markup=main_kb(message.from_user.id))
 
 @start_router.message(F.text == '❓ Помощь')
@@ -32,19 +55,23 @@ async def help(message: Message):
 @start_router.message(F.text == '📚 Книги!')
 async def get_books(message: Message):
     user = f'{message.from_user.first_name}, @{message.from_user.username}'
-    data = google_table.get_data_from_sheet(sheet_title, 7)
-    books.clear()
-    for item in data:
-        books.append(item['Название книги'].strip())
     await message.answer(text='Выберите книгу!', reply_markup=create_list_books(data, user))
 
 @start_router.message(F.text == '⚙️ Админ панель', IsAdmin(admins))
 async def get_books(message: Message):
-    data = google_table.get_data_from_sheet(sheet_title, 7)
-    books.clear()
-    for item in data:
-        books.append(item['Название книги'].strip())
-    await message.answer(text='Выберите книгу!', reply_markup=create_list_books(data))
+    await message.answer(text='Воспользуйтесь меню.', reply_markup=admin_kb())
+
+@start_router.message(F.text == 'Сгенерировать qr-code', IsAdmin(admins))
+async def crcode(message: Message):
+    await message.answer(text='Выберите книгу:', reply_markup=create_list_books(data))
+
+@start_router.message(F.text.in_(books), IsAdmin(admins))
+async def make_crcode(message: Message):
+    book = message.text
+    row=books.index(book)
+    qrcode_path = gen_qrcode(book, f'https://t.me/USSC_lib_bot?start={row+1}')
+    photo_file = FSInputFile(qrcode_path)
+    await message.reply_photo(photo=photo_file, reply_markup=create_list_books(data), caption=f'Книга: <b>{book}</b>')
 
 @start_router.message(F.text == 'Назад')
 async def go_back_home(message: Message):
@@ -54,7 +81,6 @@ async def go_back_home(message: Message):
 async def read_message(message: Message, command = None):
 
     user = f'{message.from_user.first_name}, @{message.from_user.username}'
-    data = google_table.get_data_from_sheet(sheet_title, 7)
 
     book = None
 
@@ -68,7 +94,7 @@ async def read_message(message: Message, command = None):
                 book = item
                 break
     
-    await message.reply(text='Обрабатываю ...')
+    await message.reply(text='Проверка картотеки 🤓 ...')
 
     text=f'Книга: {book} не найдена!'
 
@@ -84,18 +110,17 @@ async def read_message(message: Message, command = None):
                 text=f'Достигнут лимит книг. Верните книгу прежде чем взять новую.'
             else:
                 text=f'Книга взята: <b>{book_name}</b>'
-                google_table.update_cell_from_sheet(sheet_title, row=row+8, col=5, value=user)
-                google_table.update_cell_from_sheet(sheet_title, row=row+8, col=6, value=datetime.now().strftime('%d.%m.%Y'))
-                google_table.update_cell_from_sheet(sheet_title, row=row+8, col=7, value='2 недели')
+                rent(row=row, value=[user,
+                                       datetime.now().strftime('%d.%m.%Y'),
+                                       '2 недели'])
         elif book['Читатель'] == user:
             text=f'Книга возвращена: <b>{book_name}</b>'
-            google_table.update_cell_from_sheet(sheet_title, row=row+8, col=5, value='')
-            google_table.update_cell_from_sheet(sheet_title, row=row+8, col=6, value='')
-            google_table.update_cell_from_sheet(sheet_title, row=row+8, col=7, value='')
+            rent(row=row, value=['','',''])
         else:
             text=f'<b>Книга занята.</b>\n' + \
                  f'Читатель: {book['Читатель']}\n' + \
                  f'Когда взял: {book['Когда взял']}\n' + \
                  f'Срок: {book['Срок']}'
-    data = google_table.get_data_from_sheet(sheet_title, 7)
+    print(batch_data)
+    refresh()
     await message.reply(text=text, reply_markup=create_list_books(data, user))

@@ -1,5 +1,5 @@
 from gspread import Spreadsheet, service_account
-from typing import List, Set, Dict
+from typing import List, Dict
 
 class GoogleTable:
 
@@ -8,7 +8,7 @@ class GoogleTable:
         self.table_key = table_key
         self.client=service_account(filename=self.config_auth)
         self.table=self.client.open_by_key(self.table_key)
-        self.data = []
+        self.data: List[Dict] = []
     
     def __repr__(self) -> List[Dict]:
         return self.data
@@ -53,4 +53,6 @@ class GoogleTable:
         
         worksheet.batch_update(batch_data)
 
+        data.clear()
+        
         return batch_data
