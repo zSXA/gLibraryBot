@@ -1,8 +1,10 @@
+import asyncio
 from aiogram import Router, F
 from aiogram.filters import CommandStart, CommandObject
 from aiogram.types import Message, FSInputFile
+from aiogram.utils.chat_action import ChatActionSender
 from keyboards.keyboards import main_kb, create_list_books, admin_kb
-from create_bot import google_table, books, admins, batch_data, scheduler, sheet_title
+from create_bot import google_table, books, admins, batch_data, scheduler, sheet_title, bot
 from datetime import datetime
 from filters.IsAdmin import IsAdmin
 from typing import List
@@ -123,4 +125,6 @@ async def read_message(message: Message, command = None):
                  f'Срок: {book['Срок']}'
     print(batch_data)
     refresh()
-    await message.reply(text=text, reply_markup=create_list_books(data, user))
+    async with ChatActionSender(bot=bot, chat_id=message.from_user.id, action='typing'):
+        await asyncio.sleep(2)
+        await message.reply(text=text, reply_markup=create_list_books(data, user))
