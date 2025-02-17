@@ -6,6 +6,8 @@ from aiogram.fsm.storage.memory import MemoryStorage
 from decouple import config
 from typing import Dict
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
+from apscheduler.schedulers.background import BlockingScheduler
+from apscheduler.triggers.cron import CronTrigger
 from google_handler.GoogleTable import GoogleTable
 import os
 

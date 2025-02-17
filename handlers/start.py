@@ -24,11 +24,17 @@ def rent(row: int, value: List):
     data[row]['Когда взял'] = value[1]
     data[row]['Срок'] = value[2]
 
+def sync_table():
+    if batch_data:
+        google_table.update_range_from_sheet(sheet_title, batch_data)
+    google_table.get_data_from_sheet(sheet_title, 7)
+
 def refresh():
     if not scheduler.get_jobs():
-        run_date = datetime.now() + timedelta(seconds=10.0)
-        scheduler.add_job(func=google_table.update_range_from_sheet,trigger='date', run_date=run_date,
-                          id=f'refresh_{run_date}', args=[sheet_title, batch_data])
+        run_date = datetime.now() + timedelta(seconds=15.0)
+        scheduler.add_job(func=sync_table, trigger='date', run_date=run_date,
+                          id=f'sync_table_{run_date}', misfire_grace_time=5)
+        
     for job in scheduler.get_jobs():
         print(f'ID job: {job.id}')
         print(f'Next run: {job.next_run_time}')
