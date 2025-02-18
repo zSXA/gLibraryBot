@@ -28,6 +28,9 @@ def sync_table():
     if batch_data:
         google_table.update_range_from_sheet(sheet_title, batch_data)
     google_table.get_data_from_sheet(sheet_title, 7)
+    books.clear()
+    for item in data:
+        books.append(item['Название книги'].strip())
 
 def refresh():
     if not scheduler.get_jobs():
