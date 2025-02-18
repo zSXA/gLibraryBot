@@ -24,25 +24,6 @@ def rent(row: int, value: List):
     data[row]['Когда взял'] = value[1]
     data[row]['Срок'] = value[2]
 
-def sync_table():
-    if batch_data:
-        google_table.update_range_from_sheet(sheet_title, batch_data)
-    google_table.get_data_from_sheet(sheet_title, 7)
-    books.clear()
-    for item in data:
-        books.append(item['Название книги'].strip())
-
-def refresh():
-    if not scheduler.get_jobs():
-        run_date = datetime.now() + timedelta(seconds=15.0)
-        scheduler.add_job(func=sync_table, trigger='date', run_date=run_date,
-                          id=f'sync_table_{run_date}', misfire_grace_time=5)
-        
-    for job in scheduler.get_jobs():
-        print(f'ID job: {job.id}')
-        print(f'Next run: {job.next_run_time}')
-        print(f'State: {job._jobstore_alias}')
-
 @start_router.message(CommandStart())
 async def start(message: Message, command: CommandObject):
 
@@ -133,7 +114,6 @@ async def read_message(message: Message, command = None):
                  f'Когда взял: {book['Когда взял']}\n' + \
                  f'Срок: {book['Срок']}'
     print(batch_data)
-    refresh()
     async with ChatActionSender(bot=bot, chat_id=message.from_user.id, action='typing'):
         await asyncio.sleep(2)
         await message.reply(text=text, reply_markup=create_list_books(data, user))

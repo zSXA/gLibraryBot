@@ -14,7 +14,19 @@ import os
 #from db_handler.db_class import PostgresHandler
 
 #pg_db = PostgresHandler(config('PG_LINK'))
+
+def load_data():
+    if batch_data:
+        google_table.update_range_from_sheet(sheet_title, batch_data)
+    google_table.get_data_from_sheet(sheet_title, 7)
+    books.clear()
+    for item in google_table.data:
+        books.append(item['Название книги'].strip())
+
+
 scheduler = AsyncIOScheduler(timezone='Asia/Yekaterinburg')
+scheduler.add_job(load_data, 'interval', seconds=15, misfire_grace_time=5, id='load_data')
+
 admins = [int(admin_id) for admin_id in config('ADMINS').split(',')]
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
@@ -27,6 +39,6 @@ all_media_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'media'
 
 sheet_title = config('sheet_title_books')
 google_table = GoogleTable(config('google_config_auth'),config('google_table_key'))
-google_table.get_data_from_sheet(sheet_title, 7)
-books = [item['Название книги'].strip() for item in google_table.data]
+books = []
 batch_data: Dict = {}
+load_data()
